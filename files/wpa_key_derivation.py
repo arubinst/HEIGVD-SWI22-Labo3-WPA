@@ -9,16 +9,16 @@ utilise l'algorithme Michael. Dans ce cas-ci, l'authentification, on utilise
 sha-1 pour WPA2 ou MD5 pour WPA)
 """
 
-__author__      = "Abraham Rubinstein et Yann Lederrey"
-__copyright__   = "Copyright 2017, HEIG-VD"
+__author__      = "Dylan Canton & Christian Zaccaria"
+__copyright__   = "Copyright 2022, HEIG-VD"
 __license__ 	= "GPL"
 __version__ 	= "1.0"
-__email__ 		= "abraham.rubinstein@heig-vd.ch"
+__email__ 		= "dylan.canton@heig-vd.ch, christian.zaccaria@heig-vd.ch"
 __status__ 		= "Prototype"
 
 from scapy.all import *
 from binascii import a2b_hex, b2a_hex
-#from pbkdf2 import pbkdf2_hex
+#from pbkdf2_math import pbkdf2_hex
 from pbkdf2 import *
 from numpy import array_split
 from numpy import array
@@ -38,26 +38,36 @@ def customPRF512(key,A,B):
     return R[:blen]
 
 # Read capture file -- it contains beacon, authentication, associacion, handshake and data
-wpa=rdpcap("wpa_handshake.cap") 
+wpa=rdpcap("wpa_handshake.pcap") 
+
+# on prend les frames nécessaires : le beacon frame, ainsi que les handshake 1,2 et 4
+beacon = wpa[0]
+handshake_f1 = wpa[5]
+handshake_f2 = wpa[6]
+handshake_f4 = wpa[8]
 
 # Important parameters for key derivation - most of them can be obtained from the pcap file
 passPhrase  = "actuelle"
 A           = "Pairwise key expansion" #this string is used in the pseudo-random function
-ssid        = "SWI"
-APmac       = a2b_hex("cebcc8fdcab7")
-Clientmac   = a2b_hex("0013efd015bd")
+ssid        = beacon.info.decode("utf-8")
+
+# Replacement des ":" par "" dans les MAC, ceci pour les transformer en bytes
+APmac       = a2b_hex(str.replace(handshake_f1.addr2, ":", ""))
+Clientmac   = a2b_hex(str.replace(handshake_f1.addr1, ":", ""))
 
 # Authenticator and Supplicant Nonces
-ANonce      = a2b_hex("90773b9a9661fee1f406e8989c912b45b029c652224e8b561417672ca7e0fd91")
-SNonce      = a2b_hex("7b3826876d14ff301aee7c1072b5e9091e21169841bce9ae8a3f24628f264577")
+# Depuis le key descriptor type, on prend ANonce, respectivement SNonce (avec RAW)
+ANonce      = handshake_f1.load[13:45]
+SNonce      = raw(handshake_f2)[65:-72]  
 
 # This is the MIC contained in the 4th frame of the 4-way handshake
 # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
-mic_to_test = "36eef66540fa801ceee2fea9b7929b40"
+mic_to_test = raw(handshake_f4)[-18:-2]
 
 B           = min(APmac,Clientmac)+max(APmac,Clientmac)+min(ANonce,SNonce)+max(ANonce,SNonce) #used in pseudo-random function
 
-data        = a2b_hex("0103005f02030a0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000") #cf "Quelques détails importants" dans la donnée
+# Récupération de la dernière trame du handshake + remplacement des valeurs de la MIC key avec des zéro
+data = raw(handshake_f4)[48:-18] + 18 * b"\x00"  # cf "Quelques détails importants" dans la donnée
 
 print ("\n\nValues used to derivate keys")
 print ("============================")
@@ -78,7 +88,6 @@ ptk = customPRF512(pmk,str.encode(A),B)
 
 #calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
 mic = hmac.new(ptk[0:16],data,hashlib.sha1)
-
 
 print ("\nResults of the key expansion")
 print ("=============================")
