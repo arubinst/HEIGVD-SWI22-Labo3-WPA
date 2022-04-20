@@ -107,13 +107,24 @@ __Vous aurez peut-être besoin de lire ceci plus d'une fois pour comprendre...__
 Un fork du repo original . Puis, un Pull Request contenant **vos noms** et :
 
 - Script ```wpa_key_derivation.py``` **modifié pour** la récupération automatique des paramètres à partir de la capture. **Les modifications doivent être commentées/documentées**
+
 - Script ```scaircrack.py``` **abondamment commenté/documenté** + fichier wordlist
-   - Capture d’écran de votre script en action
+   
+   Lorsqu'on ajoute dans un fichier txt différentes *passphrases* (donc celle que nous avons besoin), on remarque le script fonctionne correctement et qu'il trouve la *passphrase* utilisée.
+   
+   ![](media/Part2-scriptWithPassphrase.PNG)
+   
+   Au contraire, lorsque notre fichier ne contient pas la *passphrase*, on remarque que le résultat est bien que l'on arrive pas trouver la passphrase (ainsi que toutes les clés correspondantes).
+   
+   ![](media/Part2-scriptNoPassphrase.PNG)
+   
 - Script ```pmkid_attack.py``` **abondamment commenté/documenté** + fichier wordlist
    - Capture d’écran de votre script en action
    - Captures d'écran de l'attaque hashcat
+   
 -	**(Challenge optionnel)** Script ```scairodump.py``` **abondamment commenté/documenté** 
    - Capture d’écran de votre script en action
+   
 -	Envoyer le hash du commit et votre username GitHub et **les noms des participants** par email au professeur et à l'assistant
 
 
