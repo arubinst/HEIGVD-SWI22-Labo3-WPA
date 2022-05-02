@@ -49,6 +49,7 @@ def extractDataFromAsso(packets):
         if packet.haslayer(Dot11AssoReq):
             list_AssoReq.append(packet)
 
+    
     #On vérifie que la liste ait au moins un élément de type AssoReq
     if len(list_AssoReq) == 0:
         raise Exception("Could not find any associations in the packets")
@@ -70,6 +71,7 @@ def extractDataFromHandshake(packets):
     for handshake in packets:
         if handshake.haslayer(WPA_key):
             list_Handshakes.append(handshake)
+    print(len(list_Handshakes))
 
     #On vérifie si on possède bien 4 handshake /!\ Scapy 2.4.5 est requis, 2.4.4 ne détecte que 2 handshake
     if len(list_Handshakes) != 4:
