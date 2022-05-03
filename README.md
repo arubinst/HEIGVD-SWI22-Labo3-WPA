@@ -109,18 +109,37 @@ Un fork du repo original . Puis, un Pull Request contenant **vos noms** et :
 - Script ```wpa_key_derivation.py``` **modifié pour** la récupération automatique des paramètres à partir de la capture. **Les modifications doivent être commentées/documentées**
 
 - Script ```scaircrack.py``` **abondamment commenté/documenté** + fichier wordlist
-   
+  
    Lorsqu'on ajoute dans un fichier txt différentes *passphrases* (donc celle que nous avons besoin), on remarque le script fonctionne correctement et qu'il trouve la *passphrase* utilisée.
    
    ![](media/Part2-scriptWithPassphrase.PNG)
    
-   Au contraire, lorsque notre fichier ne contient pas la *passphrase*, on remarque que le résultat est bien que l'on arrive pas trouver la passphrase (ainsi que toutes les clés correspondantes).
+   Au contraire, lorsque notre fichier ne contient pas la *passphrase*, on remarque que le résultat est bien que l'on n'arrive pas trouver la passphrase (ainsi que toutes les clés correspondantes).
    
    ![](media/Part2-scriptNoPassphrase.PNG)
    
 - Script ```pmkid_attack.py``` **abondamment commenté/documenté** + fichier wordlist
-   - Capture d’écran de votre script en action
-   - Captures d'écran de l'attaque hashcat
+   - **Capture d’écran de votre script en action**
+   
+     Nous ajoutons la *passphrase* `admin123` utilisée dans la capture wireshark dans le fichier txt. Nous pouvons voir ensuite que le script fonctionne correctement, il compare le PMKID trouvé dans la capture wireshark avec le PMKID calculé pour chaque *passphrase* du fichier txt et affiche la *passphrase* trouvé correspondant bien à `admin123`.
+   
+     ![](media/Part3-scriptWithPassphrase.PNG)
+   
+     
+   
+     Si la *passphrase* correspondante n'est pas présente dans le fichier txt, le script indique qu'aucune *passphrase* na pu être trouvée.
+   
+     ![](media/Part3-scriptNoPassphrase.PNG)
+   
+   - **Captures d'écran de l'attaque hashcat**
+   
+     La version proposée du plugin d'hashcat pour l'attaque est dépasée (version 16800 obsolète -> voir la version 22000).
+   
+     ![](media/Part3-hashcatAttack_Depreciée.PNG)
+   
+     Nous lançons donc l'attaque avec la nouvelle version, mais celle la n'aboutis pas.
+   
+     ![](media/Part3-hashcatAttack_3.PNG)
    
 -	**(Challenge optionnel)** Script ```scairodump.py``` **abondamment commenté/documenté** 
    - Capture d’écran de votre script en action
