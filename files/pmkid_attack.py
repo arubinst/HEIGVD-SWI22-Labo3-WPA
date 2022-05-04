@@ -74,7 +74,7 @@ def main():
 
     # On récupère le premier message du handshake contenant le pmkid
     message1of4 = list_Handshakes[0].getlayer(WPA_key)
-    # On récupre le mac du client
+    # On récupère le mac du client
     Clientmac = a2b_hex((list_Handshakes[0].addr1).replace(":", ""))
     # On récupère les 16 derniers bytes qui correspondent au pmkid
     pmkid = message1of4.wpa_key[-16:]

@@ -42,7 +42,19 @@ def customPRF512(key,A,B):
 # Read capture file -- it contains beacon, authentication, associacion, handshake and data
 wpa=rdpcap("wpa_handshake.cap")
 
-#On effectue un filtre sur l'argument packets, on créé une list ne contenant que les packets correspondant à un 4WHS
+#On effectue un filtre sur les packets, on créé une liste ne contenant que les packets correspondant à un requête d'association
+list_AssoReq = []
+for packet in wpa:
+    if packet.haslayer(Dot11AssoReq):
+        list_AssoReq.append(packet)
+
+#On sélectionne le premier élément de la liste, et on en extrait les données requises
+assoReq = list_AssoReq[0]
+ssid= assoReq.info.decode('ascii')
+APmac = a2b_hex((assoReq.addr1).replace(":",""))
+Clientmac = a2b_hex((assoReq.addr2).replace(":",""))
+
+#On effectue un filtre sur les packets, on créé une list ne contenant que les packets correspondant à un 4WHS
 list_Handshakes = []
 for handshake in wpa:
     if handshake.haslayer(WPA_key):
@@ -64,27 +76,14 @@ list_HandshakesData[3].wpa_key_mic=0
 #On extrait les données grâce à underlayer de scapy.Packet
 data = bytes(list_HandshakesData[3].underlayer)
 
-#On effectue un filtre sur l'argument packets, on créé une liste ne contenant que les packets correspondant à un requête d'association
-list_AssoReq = []
-for packet in wpa:
-    if packet.haslayer(Dot11AssoReq):
-        list_AssoReq.append(packet)
-
-#On sélectionne le premier élément de la liste, et on en extrait les données requises
-assoReq = list_AssoReq[0]
-ssid= assoReq.info.decode('ascii')
-APmac = a2b_hex((assoReq.addr1).replace(":",""))
-Clientmac = a2b_hex((assoReq.addr2).replace(":",""))
-
 # Important parameters for key derivation - most of them can be obtained from the pcap file
 passPhrase  = "actuelle"
-A           = "Pairwise key expansion" #this string is used in the pseudo-random function
+A = "Pairwise key expansion" #this string is used in the pseudo-random function
 # Authenticator and Supplicant Nonces
 # This is the MIC contained in the 4th frame of the 4-way handshake
 # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
 
-
-B           = min(APmac,Clientmac)+max(APmac,Clientmac)+min(ANonce,SNonce)+max(ANonce,SNonce) #used in pseudo-random function
+B = min(APmac,Clientmac)+max(APmac,Clientmac)+min(ANonce,SNonce)+max(ANonce,SNonce) #used in pseudo-random function
 
 print ("\n\nValues used to derivate keys")
 print ("============================")
