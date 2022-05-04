@@ -39,65 +39,42 @@ def customPRF512(key,A,B):
         R = R+hmacsha1.digest()
     return R[:blen]
 
-def extractDataFromAsso(packets):
-    """
-    Cette fonction permet d'extraire le SSID, l'adresse MAC de l'access point et l'adresse MAC du client en prenant la Requête d'Association présente dans une fichier .cap
-    """
-    #On effectue un filtre sur l'argument packets, on créé une liste ne contenant que les packets correspondant à un requête d'association
-    list_AssoReq = []
-    for packet in packets:
-        if packet.haslayer(Dot11AssoReq):
-            list_AssoReq.append(packet)
-
-    
-    #On vérifie que la liste ait au moins un élément de type AssoReq
-    if len(list_AssoReq) == 0:
-        raise Exception("Could not find any associations in the packets")
-
-    #On sélectionne le premier élément de la liste, et on en extrait les données requises
-    assoReq = list_AssoReq[0]
-    ssid= assoReq.info.decode('ascii')
-    APmac = a2b_hex((assoReq.addr1).replace(":",""))
-    Clientmac = a2b_hex((assoReq.addr2).replace(":",""))
-
-    return ssid, APmac, Clientmac
-
-def extractDataFromHandshake(packets):
-    """
-    Cette fonction permet d'extraire les nonces, le mic et les données présent dans le 4WHS de WPA
-    """
-    #On effectue un filtre sur l'argument packets, on créé une list ne contenant que les packets correspondant à un 4WHS
-    list_Handshakes = []
-    for handshake in packets:
-        if handshake.haslayer(WPA_key):
-            list_Handshakes.append(handshake)
-    print(len(list_Handshakes))
-
-    #On vérifie si on possède bien 4 handshake /!\ Scapy 2.4.5 est requis, 2.4.4 ne détecte que 2 handshake
-    if len(list_Handshakes) != 4:
-        raise Exception("This handshake is not valid")
-
-    #On extrait les données des handshakes
-    list_HandshakesData = []
-    for handshake in list_Handshakes:
-        list_HandshakesData.append(handshake.getlayer(WPA_key))
-
-    ANonce = list_HandshakesData[0].nonce
-    SNonce = list_HandshakesData[1].nonce
-    mic = list_HandshakesData[3].wpa_key_mic
-
-    #On place la mic key à 0 afin de pouvoir extraire les données
-    list_HandshakesData[3].wpa_key_mic=0
-
-    #On extrait les données grâce à underlayer de scapy.Packet
-    data = bytes(list_HandshakesData[3].underlayer)
-
-    return ANonce, SNonce, mic, data
 # Read capture file -- it contains beacon, authentication, associacion, handshake and data
 wpa=rdpcap("wpa_handshake.cap")
 
-ssid, APmac, Clientmac = extractDataFromAsso(wpa)
-ANonce, SNonce, mic, data = extractDataFromHandshake(wpa)
+#On effectue un filtre sur l'argument packets, on créé une list ne contenant que les packets correspondant à un 4WHS
+list_Handshakes = []
+for handshake in wpa:
+    if handshake.haslayer(WPA_key):
+        list_Handshakes.append(handshake)
+print(len(list_Handshakes))
+
+#On extrait les données des handshakes
+list_HandshakesData = []
+for handshake in list_Handshakes:
+    list_HandshakesData.append(handshake.getlayer(WPA_key))
+
+ANonce = list_HandshakesData[0].nonce
+SNonce = list_HandshakesData[1].nonce
+mic = list_HandshakesData[3].wpa_key_mic
+
+#On place la mic key à 0 afin de pouvoir extraire les données
+list_HandshakesData[3].wpa_key_mic=0
+
+#On extrait les données grâce à underlayer de scapy.Packet
+data = bytes(list_HandshakesData[3].underlayer)
+
+#On effectue un filtre sur l'argument packets, on créé une liste ne contenant que les packets correspondant à un requête d'association
+list_AssoReq = []
+for packet in wpa:
+    if packet.haslayer(Dot11AssoReq):
+        list_AssoReq.append(packet)
+
+#On sélectionne le premier élément de la liste, et on en extrait les données requises
+assoReq = list_AssoReq[0]
+ssid= assoReq.info.decode('ascii')
+APmac = a2b_hex((assoReq.addr1).replace(":",""))
+Clientmac = a2b_hex((assoReq.addr2).replace(":",""))
 
 # Important parameters for key derivation - most of them can be obtained from the pcap file
 passPhrase  = "actuelle"

