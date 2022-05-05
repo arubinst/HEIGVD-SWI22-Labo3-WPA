@@ -114,6 +114,34 @@ Utilisant votre script précédent, le modifier pour réaliser les taches suivan
    - Identiques &rarr; La passphrase utilisée est correcte
    - Différents &rarr; Essayer avec une nouvelle passphrase
 
+![](./images/pmkid_attack.gif)
+
+
+
+Message d'aide de l'outil:
+
+```
+> python3 pmkid_attack.py -h
+usage: pmkid_attack.py [-h] [-d DICTIONARY] pcap
+
+Cracks the SSID passphrase using a PMKID attack with a given dictionary
+
+positional arguments:
+  pcap                  Network capture containing the first packet of the WPA handshake, which
+                        contains the PMKID
+
+options:
+  -h, --help            show this help message and exit
+  -d DICTIONARY, --dictionary DICTIONARY
+                        The dictionary to use for bruteforcing the key. By default, a wordlist
+                        containing the most popular 4800 passwords is used
+
+This script was developped as an exercise for the SWI course at HEIG-VD
+
+```
+
+
+
 
 #### 3.3. Attaque hashcat
 
