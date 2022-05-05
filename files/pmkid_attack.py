@@ -42,6 +42,11 @@ def customPRF512(key,A,B):
     return R[:blen]
 
 def main():
+     # Valeur du key info pour le premier message du handshake
+    FIRST_MESSAGE = 0x008a
+    #Constante présente dans le PMKID
+    pmkName = b"PMK Name"
+
     # Read capture file -- it contains beacon, authentication, associacion, handshake and data
     pmkid=rdpcap("PMKID_handshake.pcap")
 
@@ -62,8 +67,6 @@ def main():
 
     # On effectue un filtre sur l'argument packets, on créé une list ne contenant que les packets correspondant à un 4WHS
     list_Handshakes = []
-    # Valeur du key info pour le premier message du handshake
-    FIRST_MESSAGE = 0x008a
 
     # On parcourt les paquets en cherchant le premier message d'un handshake provenant de notre AP
     for handshake in pmkid:
@@ -79,7 +82,6 @@ def main():
     # On récupère les 16 derniers bytes qui correspondent au pmkid
     pmkid = message1of4.wpa_key[-16:]
 
-    pmkName = b"PMK Name"
 
     # Important parameters for key derivation - most of them can be obtained from the pcap file
     passPhrase  = "actuelle"
@@ -108,7 +110,7 @@ def main():
         #Calculate PMKID with calculated pmk and concatenation of mac adresses and constants
         pmkid_test = hmac.new(pmk, pmkName + APmac + Clientmac, hashlib.sha1)
 
-        #We have to take only the 16 first bytes otherwise it does not work
+        #On doit uniquement prendre les 16 premiers bit, et pas les 20 fournis par la fonction hmac
         if pmkid == pmkid_test.digest()[:16]:
             print("The passphrase has been found ! Passphrase : ", passPhrase)
 

@@ -54,7 +54,7 @@ ssid= assoReq.info.decode('ascii')
 APmac = a2b_hex((assoReq.addr1).replace(":",""))
 Clientmac = a2b_hex((assoReq.addr2).replace(":",""))
 
-#On effectue un filtre sur les packets, on créé une list ne contenant que les packets correspondant à un 4WHS
+#On effectue un filtre sur les packets, on créé une list ne contenant que les packets correspondant à un 4WHS (4 way handshake)
 list_Handshakes = []
 for handshake in wpa:
     if handshake.haslayer(WPA_key):
