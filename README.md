@@ -8,6 +8,8 @@
 
 ## Laboratoire 802.11 Sécurité WPA
 
+> Auteurs: Jean-Luc Blanc & Noémie Plancherel
+
 __A faire en équipes de deux personnes__
 
 __Développement à faire en Python 3__
@@ -111,22 +113,22 @@ Un fork du repo original . Puis, un Pull Request contenant **vos noms** et :
 - Script ```scaircrack.py``` **abondamment commenté/documenté** + fichier wordlist
    - Capture d’écran de votre script en action
    
+   ![](images/script_2.png)
+   
 - Script ```pmkid_attack.py``` **abondamment commenté/documenté** + fichier wordlist
    - Capture d’écran de votre script en action
    
-   ![](images\Task3part1.PNG)
+   ![](images/Task3part1.PNG)
    
    - Captures d'écran de l'attaque hashcat
    
-   ![](images\Task3part2.PNG)
+   ![](images/Task3part2.PNG)
    
-   ![](images\Task3part3.PNG)
+   ![](images/Task3part3.PNG)
    
-   ![](images\Task3part4.PNG)
+   ![](images/Task3part4.PNG)
    
-   ![](images\Task3part5.PNG)
-   
-   y
+   ![](images/Task3part5.PNG)
    
 -	**(Challenge optionnel)** Script ```scairodump.py``` **abondamment commenté/documenté** 
    - Capture d’écran de votre script en action
