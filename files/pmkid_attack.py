@@ -39,7 +39,7 @@ def customPRF512(key,A,B):
     return R[:blen]
 
 
-
+# Setting up the parameters for the script to work
 wpa=rdpcap("PMKID_handshake.pcap") 
 wordlist = "wordlist.txt"
 name = b"PMK Name"
@@ -49,7 +49,7 @@ Clientmac = a2b_hex(wpa[145].addr1.replace(':',''))
 pmkid_expected = wpa[145].original[-20:-4]
 data = name + APmac + Clientmac
 
-
+# Printing the parameters
 print ("\n\nValues used to derivate keys")
 print ("============================")
 print ("Dictionary: ",wordlist,"\n")
@@ -58,9 +58,12 @@ print ("AP Mac: ",b2a_hex(APmac),"\n")
 print ("CLient Mac: ",b2a_hex(Clientmac),"\n")
 print ("PMK msg: ",b2a_hex(data),"\n")
 
-
+# Getting the various passphrases from the wordlist
 passphrases = open(wordlist, "r")
 
+
+# We iterate on each passphrase, we compute the PMKID of that passphrase and we compare it to the one we got from the capture.
+# If the 2 PMKID are the same, then we have found the key
 for passphrase in passphrases:
 	passphrase = passphrase.strip('\n')
 	
