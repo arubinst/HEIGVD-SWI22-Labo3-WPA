@@ -70,6 +70,37 @@ Voici ce que vous devez faire pour cette partie :
 - Vous aurez aussi besoin de récupérer les valeurs du ```ssid```, ```APmac``` et ```Clientmac``` (ceci est normalement déjà fait par votre script) 
 
 
+
+Le script final ressemble à ceci:
+
+
+
+
+
+
+
+Message d'aide:
+
+```
+> python3 scaircrack.py -h
+usage: scaircrack.py [-h] [-d DICTIONARY] pcap
+
+Performs a dictionary-based bruteforce of the passphrase of a WPA handshake.
+
+positional arguments:
+  pcap                  Network capture containing the authentication + the 4-way handshake of a WPA connection.
+
+options:
+  -h, --help            show this help message and exit
+  -d DICTIONARY, --dictionary DICTIONARY
+                        The dictionary to use for bruteforcing the key. By default, a french wordlist is used
+
+This script was developped as an exercise for the SWI course at HEIG-VD
+```
+
+
+
+
 #### 3.2. Cracker la Passphrase utilisant l'attaque PMKID
 
 L'attaque PMKID est une attaque par dictionnaire qui calcule systématiquement une PMK à partir de la passphrase. Cette PMK est utilisée comme clé pour SHA-1 calculé sur une concatenation du string "PMK Name" et les adresses MAC de l'AP et la STA. Les premiers 128 bits (6 octets) du résultat de ce calcul doivent correspondre à la valeur de la PMKID obtenue à partir du premier message du 4-way handshake.
