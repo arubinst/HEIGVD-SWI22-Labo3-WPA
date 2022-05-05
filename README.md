@@ -62,7 +62,7 @@ Utilisant le script [wpa\_key\_derivation.py](files/wpa_key_derivation.py) comme
 
 Vous allez réutiliser le script de dérivation de clés de l'exercice 1 et le fichier de capture [PMKID_handshake.pcap](files/PMKID_handshake.pcap) contenant une tentative d’authentification WPA pas réussie réalisée par un attaquant.
 
-La PMKID est contenue dans le premier message du 4-way handshake de certains AP. Les AP de l'opérateur Sunrise en Suisse, par exemple, sont confirmés comme étant vulnérables. Il s'agit donc d'un AP de Sunrise qui a été utilisé pour faire [la capture](files/PMKID_handshake.pcap). 
+La PMKID est contenue dans le premier messagle du 4-way handshake de certains AP. Les AP de l'opérateur Sunrise en Suisse, par exemple, sont confirmés comme étant vulnérables. Il s'agit donc d'un AP de Sunrise qui a été utilisé pour faire [la capture](files/PMKID_handshake.pcap). 
 
 Voici ce que vous devez faire pour cette partie :
 
