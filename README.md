@@ -119,6 +119,34 @@ Utilisant votre script précédent, le modifier pour réaliser les taches suivan
 
 A manière de comparaison, réaliser l'attaque sur le [fichier de capture](files/PMKID_handshake.pcap) utilisant la méthode décrite [ici](https://hashcat.net/forum/thread-7717.html).
 
+On utilise hcxpcaptool pour extraire les pmkid du PMKID_handshake.pcap avec la MAC AP, la MAC Station et l'ESSID associées:
+
+```bash
+hcxpcaptool -z test.16800 PMKID_handshake.pcap
+```
+
+Nous obtenons l'output suivant:
+
+![](images/output_hcxpcaptool.png)
+
+Nous pouvons voir le formatage de ces éléments du le fichier output test.16800 (PMKID\*MAC_AP\*MAC_STA_\*ESSID):
+
+![](images/output_test16800.png)
+
+Nous constatons que deux éléments ont été trouvés.
+
+Ensuite nous attaquons avec la commande de hascat:
+
+```bash
+hashcat -m 16800 test.16800 -a 3 -a 0 wordlists/WiFi-WPA/probable-v2-wpa-top4800.txt --force
+```
+
+*probable-v2-wpa-top4800.txt* est le dictionnaire que nous utilisons, il est présent dans *files/wordlists/WiFi-WPA/*
+
+L'output détermine pour les deux hashs que la PMK est **admin123** :
+
+![](images/output_hashcat.png)
+
 
 ### 4. Scairodump (Challenge optionnel pour un bonus)
 
