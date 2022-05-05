@@ -56,6 +56,35 @@ Utilisant le script [wpa\_key\_derivation.py](files/wpa_key_derivation.py) comme
    - Identiques &rarr; La passphrase utilisée est correcte
    - Différents &rarr; Essayer avec une nouvelle passphrase
 
+
+
+L'exécution du script ressemble à ceci:
+
+![](./images/scaircrack-demo.gif)
+
+
+
+Message d'aide:
+
+```
+> python3 scaircrack.py -h
+usage: scaircrack.py [-h] [-d DICTIONARY] pcap
+
+Performs a dictionary-based bruteforce of the passphrase of a WPA handshake.
+
+positional arguments:
+  pcap                  Network capture containing the authentication + the 4-way handshake of a WPA connection.
+
+options:
+  -h, --help            show this help message and exit
+  -d DICTIONARY, --dictionary DICTIONARY
+                        The dictionary to use for bruteforcing the key. By default, a french wordlist is used
+
+This script was developped as an exercise for the SWI course at HEIG-VD
+```
+
+
+
 ### 3. Attaque PMKID
 
 #### 3.1. Obtention de la PMKID et des paramètres pour la dérivation de la PMK
@@ -68,6 +97,8 @@ Voici ce que vous devez faire pour cette partie :
 
 - __Modifier votre script WPA__ pour qu’il récupère automatiquement, à partir de la capture, la valeur de la PMKID
 - Vous aurez aussi besoin de récupérer les valeurs du ```ssid```, ```APmac``` et ```Clientmac``` (ceci est normalement déjà fait par votre script) 
+
+
 
 
 #### 3.2. Cracker la Passphrase utilisant l'attaque PMKID
@@ -83,10 +114,69 @@ Utilisant votre script précédent, le modifier pour réaliser les taches suivan
    - Identiques &rarr; La passphrase utilisée est correcte
    - Différents &rarr; Essayer avec une nouvelle passphrase
 
+![](./images/pmkid_attack.gif)
+
+
+
+Message d'aide de l'outil:
+
+```
+> python3 pmkid_attack.py -h
+usage: pmkid_attack.py [-h] [-d DICTIONARY] pcap
+
+Cracks the SSID passphrase using a PMKID attack with a given dictionary
+
+positional arguments:
+  pcap                  Network capture containing the first packet of the WPA handshake, which
+                        contains the PMKID
+
+options:
+  -h, --help            show this help message and exit
+  -d DICTIONARY, --dictionary DICTIONARY
+                        The dictionary to use for bruteforcing the key. By default, a wordlist
+                        containing the most popular 4800 passwords is used
+
+This script was developped as an exercise for the SWI course at HEIG-VD
+
+```
+
+
+
 
 #### 3.3. Attaque hashcat
 
 A manière de comparaison, réaliser l'attaque sur le [fichier de capture](files/PMKID_handshake.pcap) utilisant la méthode décrite [ici](https://hashcat.net/forum/thread-7717.html).
+
+On utilise hcxpcaptool pour extraire les pmkid du PMKID_handshake.pcap avec la MAC AP, la MAC Station et l'ESSID associées:
+
+```bash
+hcxpcaptool -z test.16800 PMKID_handshake.pcap
+```
+
+Nous obtenons l'output suivant:
+
+![](images/output_hcxpcaptool.png)
+
+Nous pouvons voir le formatage de ces éléments du le fichier output test.16800 (PMKID\*MAC_AP\*MAC_STA_\*ESSID):
+
+![](images/output_test16800.png)
+
+Nous constatons que deux éléments ont été trouvés.
+
+Ensuite nous attaquons avec la commande de hascat:
+
+```bash
+hashcat -m 16800 test.16800 -a 3 -a 0 wordlists/WiFi-WPA/probable-v2-wpa-top4800.txt --force
+```
+
+*probable-v2-wpa-top4800.txt* est le dictionnaire que nous utilisons, il est présent dans *files/wordlists/WiFi-WPA/*
+
+L'output détermine pour les deux hashs que la PMK est **admin123** :
+
+![](images/output_hashcat.png)
+
+
+
 
 
 ### 4. Scairodump (Challenge optionnel pour un bonus)
