@@ -114,7 +114,40 @@ Un fork du repo original . Puis, un Pull Request contenant **vos noms** et :
    - Captures d'écran de l'attaque hashcat
 -	**(Challenge optionnel)** Script ```scairodump.py``` **abondamment commenté/documenté** 
    - Capture d’écran de votre script en action
--	Envoyer le hash du commit et votre username GitHub et **les noms des participants** par email au professeur et à l'assistant
+- Envoyer le hash du commit et votre username GitHub et **les noms des participants** par email au professeur et à l'assistant
+
+
+
+### 1. Obtention des paramètres pour la dérivation des clés WPA
+
+Script modifié :  [wpa_key_derivation.py](files/wpa_key_derivation.py) 
+
+### 2. Scaircrack
+
+Script :  [scaircrack.py](files/scaircrack.py) 
+
+Utilise le dictionnaire : [wordlist.txt](files/wordlist.txt) 
+
+##### Script en action
+
+![Scaircrack](assets/Scaircrack.PNG)
+
+
+
+### 3.2 Attaque PMKID
+
+Script :  [pmkid_attack.py](files/pmkid_attack.py) 
+
+Utilise le dictionnaire : [PasswordDictionary.txt](files/PasswordDictionary.txt) 
+
+##### Script en action
+
+![pmkid-console](./assets/pmkid-console.PNG)
+
+### 3.3 Hashcat
+
+![hashcat-password](./assets/hashcat-password.PNG)
+
 
 
 ## Échéance
