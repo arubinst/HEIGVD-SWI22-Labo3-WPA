@@ -107,13 +107,44 @@ __Vous aurez peut-être besoin de lire ceci plus d'une fois pour comprendre...__
 Un fork du repo original . Puis, un Pull Request contenant **vos noms** et :
 
 - Script ```wpa_key_derivation.py``` **modifié pour** la récupération automatique des paramètres à partir de la capture. **Les modifications doivent être commentées/documentées**
+
 - Script ```scaircrack.py``` **abondamment commenté/documenté** + fichier wordlist
+  
    - Capture d’écran de votre script en action
+   
+   Avec la passphrase contenue dans le fichier wordlist :
+   
+   ![](images/scaircrack_1.png)
+   
+   Sans la passphrase contenue dans le fichier wordlist :
+   
+   ![](images/scaircrack_2.png)
+   
 - Script ```pmkid_attack.py``` **abondamment commenté/documenté** + fichier wordlist
    - Capture d’écran de votre script en action
+   
+   ![](images/pmkid.png)
+   
    - Captures d'écran de l'attaque hashcat
+   
+   Conversion d'un fichier pcap en fichier lisible par hashcat :
+   
+   ![](images/hashcat_1.png)
+   
+   ![](images/hashcat_2.png)
+   
+   Utilisation de hashcat pour récupérer la passphrase :
+   
+   ![](images/hashcat_3.png)
+   
+   Cette opération a du être effectuée sur une machine physique car cela ne marchait pas sur une VM.
+   
+   La passphrase a bien été récupérée comme on peut le voir en bas de la capture.
+   
 -	**(Challenge optionnel)** Script ```scairodump.py``` **abondamment commenté/documenté** 
+   
    - Capture d’écran de votre script en action
+   
 -	Envoyer le hash du commit et votre username GitHub et **les noms des participants** par email au professeur et à l'assistant
 
 
