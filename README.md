@@ -56,19 +56,6 @@ Utilisant le script [wpa\_key\_derivation.py](files/wpa_key_derivation.py) comme
    - Identiques &rarr; La passphrase utilisée est correcte
    - Différents &rarr; Essayer avec une nouvelle passphrase
 
-### 3. Attaque PMKID
-
-#### 3.1. Obtention de la PMKID et des paramètres pour la dérivation de la PMK
-
-Vous allez réutiliser le script de dérivation de clés de l'exercice 1 et le fichier de capture [PMKID_handshake.pcap](files/PMKID_handshake.pcap) contenant une tentative d’authentification WPA pas réussie réalisée par un attaquant.
-
-La PMKID est contenue dans le premier message du 4-way handshake de certains AP. Les AP de l'opérateur Sunrise en Suisse, par exemple, sont confirmés comme étant vulnérables. Il s'agit donc d'un AP de Sunrise qui a été utilisé pour faire [la capture](files/PMKID_handshake.pcap). 
-
-Voici ce que vous devez faire pour cette partie :
-
-- __Modifier votre script WPA__ pour qu’il récupère automatiquement, à partir de la capture, la valeur de la PMKID
-- Vous aurez aussi besoin de récupérer les valeurs du ```ssid```, ```APmac``` et ```Clientmac``` (ceci est normalement déjà fait par votre script) 
-
 
 
 L'exécution du script ressemble à ceci:
@@ -95,6 +82,21 @@ options:
 
 This script was developped as an exercise for the SWI course at HEIG-VD
 ```
+
+
+
+### 3. Attaque PMKID
+
+#### 3.1. Obtention de la PMKID et des paramètres pour la dérivation de la PMK
+
+Vous allez réutiliser le script de dérivation de clés de l'exercice 1 et le fichier de capture [PMKID_handshake.pcap](files/PMKID_handshake.pcap) contenant une tentative d’authentification WPA pas réussie réalisée par un attaquant.
+
+La PMKID est contenue dans le premier message du 4-way handshake de certains AP. Les AP de l'opérateur Sunrise en Suisse, par exemple, sont confirmés comme étant vulnérables. Il s'agit donc d'un AP de Sunrise qui a été utilisé pour faire [la capture](files/PMKID_handshake.pcap). 
+
+Voici ce que vous devez faire pour cette partie :
+
+- __Modifier votre script WPA__ pour qu’il récupère automatiquement, à partir de la capture, la valeur de la PMKID
+- Vous aurez aussi besoin de récupérer les valeurs du ```ssid```, ```APmac``` et ```Clientmac``` (ceci est normalement déjà fait par votre script) 
 
 
 
