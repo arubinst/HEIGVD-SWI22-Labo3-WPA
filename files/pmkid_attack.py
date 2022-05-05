@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 __author__ = "Abraham Rubinstein et Yann Lederrey. Modifié par David Pellissier et Michael Ruckstuhl"
 __copyright__ = "Copyright 2017, HEIG-VD"
 __license__ = "GPL"
@@ -32,7 +31,7 @@ def customPRF512(key, A, B):
 
 def get_pmkid_packet(packets):
     """
-    returns the first packet containing a PMKID value. It is always the first message of a 4-way handshake
+    Returns the first packet containing a PMKID value. It is always the first message of a 4-way handshake
     """
     for p in packets:
         # Find the first message of a handshake. It is caracterized by having wpa_key_mic at 0
@@ -75,7 +74,6 @@ def find_ssid(ap_mac, packets):
     """
     Find the SSID associated with the MAC address of the AP.
     """
-
     for p in packets:
         if p.haslayer("Dot11AssoReq") and p.addr1 == ap_mac:
             ssid = p.info
@@ -89,12 +87,11 @@ def main(pcap_file, dictionary):
     packets = rdpcap(pcap_file)
     print("OK")
 
-    print("Finding Handshake packet...", end="", flush=True)
+    print("Finding a handshake packet...", end="", flush=True)
     p = get_pmkid_packet(packets)
     print("OK")
 
     pmkid = p.wpa_key[-16:]
-
     ap_mac = p.addr2  # we need the byte value to find the ssid
 
     print("Finding SSID...", end="")
@@ -111,8 +108,8 @@ def main(pcap_file, dictionary):
     print("PMKID:       ", b2a_hex(pmkid))
     print("AP Mac:      ", b2a_hex(ap_mac))
     print("CLient Mac:  ", b2a_hex(sta_mac))
-    print("SSID:        ", ssid)
-    print("Constant:    ", const)
+    print("SSID:        ", ssid.decode())
+    print("Constant:    ", const.decode())
 
     print("\nBruteforcing PMKID")
     print("============================")
@@ -126,7 +123,7 @@ def main(pcap_file, dictionary):
 
 
 if __name__ == "__main__":
-    default_wordlist = "wordlists/WiFi-WPA/probable-v2-wpa-top4800.txt"
+    default_wordlist = "wordlists/WiFi-WPA/probable-v2-wpa-top4800.txt"  # source: https://github.com/00xBAD/kali-wordlists/tree/master/SecLists/Passwords/WiFi-WPA
 
     # just parsing arguments
     parser = argparse.ArgumentParser(
