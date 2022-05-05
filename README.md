@@ -71,11 +71,9 @@ Voici ce que vous devez faire pour cette partie :
 
 
 
-Le script final ressemble à ceci:
+L'exécution du script ressemble à ceci:
 
-
-
-
+![](./images/scaircrack-demo.gif)
 
 
 
