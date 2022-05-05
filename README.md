@@ -176,6 +176,9 @@ L'output détermine pour les deux hashs que la PMK est **admin123** :
 ![](images/output_hashcat.png)
 
 
+
+
+
 ### 4. Scairodump (Challenge optionnel pour un bonus)
 
 **Note : cet exercice nécessite une interface WiFi en mode monitor. Si vous n'arrivez pas à passer votre interface interne en mode monitor et que vous voulez tenter de le faire, vous pouvez en emprunter une. Il faudra m'avertir pour se mettre d'accord et se retrouver à l'école.**

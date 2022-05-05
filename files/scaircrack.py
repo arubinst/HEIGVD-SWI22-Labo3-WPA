@@ -150,16 +150,17 @@ def main(pcap_file, dictionary):
 
 
 if __name__ == "__main__":
-
     default_wordlist = "wordlists/french.txt"  # https://github.com/Taknok/French-Wordlist
-    
+
     # just parsing arguments
     parser = argparse.ArgumentParser(
         description="Performs a dictionary-based bruteforce of the passphrase of a WPA handshake.",
         epilog="This script was developped as an exercise for the SWI course at HEIG-VD")
-        
-    parser.add_argument("pcap", help="Network capture containing the authentication + the 4-way handshake of a WPA connection.")
-    parser.add_argument("-d", "--dictionary", default=default_wordlist, help="The dictionary to use for bruteforcing the key. By default, a french wordlist is used")
+
+    parser.add_argument("pcap",
+                        help="Network capture containing the authentication + the 4-way handshake of a WPA connection.")
+    parser.add_argument("-d", "--dictionary", default=default_wordlist,
+                        help="The dictionary to use for bruteforcing the key. By default, a french wordlist is used")
     args = parser.parse_args()
 
     main(args.pcap, args.dictionary)

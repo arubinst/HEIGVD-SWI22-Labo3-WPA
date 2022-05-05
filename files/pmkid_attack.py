@@ -85,7 +85,6 @@ def find_ssid(ap_mac, packets):
 
 
 def main(pcap_file, dictionary):
-
     print("Reading the file...", end="", flush=True)
     packets = rdpcap(pcap_file)
     print("OK")
@@ -137,7 +136,7 @@ if __name__ == "__main__":
     parser.add_argument("pcap",
                         help="Network capture containing the first packet of the WPA handshake, which contains the PMKID")
     parser.add_argument("-d", "--dictionary", default=default_wordlist,
-                        help="The dictionary to use for bruteforcing the key. By default, a wordlist containing the most popular 4800 passwords is used")
+                        help="The dictionary to use for bruteforcing the key. By default, it is a wordlist containing the most popular 4800 passwords")
     args = parser.parse_args()
 
     main(args.pcap, args.dictionary)
