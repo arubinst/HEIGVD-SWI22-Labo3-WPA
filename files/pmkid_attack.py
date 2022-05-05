@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-Derive WPA keys from Passphrase and 4-way handshake info
-
-Calcule un MIC d'authentification (le MIC pour la transmission de données
-utilise l'algorithme Michael. Dans ce cas-ci, l'authentification, on utilise
-sha-1 pour WPA2 ou MD5 pour WPA)
-"""
 
 __author__ = "Abraham Rubinstein et Yann Lederrey. Modifié par David Pellissier et Michael Ruckstuhl"
 __copyright__ = "Copyright 2017, HEIG-VD"
@@ -50,6 +43,9 @@ def get_pmkid_packet(packets):
 
 
 def pmkid_bruteforce(pmkid, ssid, mac_ap, mac_sta, const, wordlist):
+    """
+    Try to find a collision with the expected PMKID, using the wordlist.
+    """
     with open(wordlist) as file1:
         pmkid_expected = b2a_hex(pmkid)
 
@@ -62,7 +58,7 @@ def pmkid_bruteforce(pmkid, ssid, mac_ap, mac_sta, const, wordlist):
             pmk = pbkdf2(hashlib.sha1, passphrase, ssid, 4096, 32)
             # calculate pmkid
             data = const + mac_ap + mac_sta
-            pmkid_guess = hmac.new(pmk, data,  hashlib.sha1)
+            pmkid_guess = hmac.new(pmk, data, hashlib.sha1)
             pmkid_guess = bytes(pmkid_guess.hexdigest(), "utf-8")[:-8]
 
             print(f"\r{passphrase.decode():22} = {pmkid_guess}          ", end="", flush=True)
@@ -76,10 +72,14 @@ def pmkid_bruteforce(pmkid, ssid, mac_ap, mac_sta, const, wordlist):
 
 
 def find_ssid(ap_mac, packets):
+    """
+    Find the SSID associated with the MAC address of the AP.
+    """
+
     for p in packets:
         if p.haslayer("Dot11AssoReq") and p.addr1 == ap_mac:
-                ssid = p.info
-                return ssid
+            ssid = p.info
+            return ssid
 
     raise Exception("Couldn't find the SSID of this MAC address")
 
@@ -107,8 +107,8 @@ def main(pcap_file, dictionary):
 
     const = b'PMK Name'
 
-
-    print("Values used to calculate PMKID:")
+    print("\nValues used to calculate PMKID")
+    print("============================")
     print("PMKID:       ", b2a_hex(pmkid))
     print("AP Mac:      ", b2a_hex(ap_mac))
     print("CLient Mac:  ", b2a_hex(sta_mac))
@@ -128,17 +128,16 @@ def main(pcap_file, dictionary):
 
 if __name__ == "__main__":
     default_wordlist = "wordlists/WiFi-WPA/probable-v2-wpa-top4800.txt"  # https://github.com/Taknok/French-Wordlist
-    pcap = "PMKID_handshake.pcap"
-    main(pcap, default_wordlist)
 
-    '''
     # just parsing arguments
     parser = argparse.ArgumentParser(
-        description="Performs a dictionary-based bruteforce of the passphrase of a WPA handshake.",
+        description="Performs a dictionary-based bruteforce of the passphrase PMKID.",
         epilog="This script was developped as an exercise for the SWI course at HEIG-VD")
-        
-    parser.add_argument("pcap", help="Network capture containing the authentication + the 4-way handshake of a WPA connection.")
-    parser.add_argument("-d", "--dictionary", default=default_wordlist, help="The dictionary to use for bruteforcing the key. By default, a french wordlist is used")
+
+    parser.add_argument("pcap",
+                        help="Network capture containing the first packet of the WPA handshake, which contains the PMKID")
+    parser.add_argument("-d", "--dictionary", default=default_wordlist,
+                        help="The dictionary to use for bruteforcing the key. By default, a french wordlist is used")
     args = parser.parse_args()
+
     main(args.pcap, args.dictionary)
-    '''
