@@ -113,6 +113,8 @@ def main():
         #On doit uniquement prendre les 16 premiers bit, et pas les 20 fournis par la fonction hmac
         if pmkid == pmkid_test.digest()[:16]:
             print("The passphrase has been found ! Passphrase : ", passPhrase)
+        else:
+            print("The passphrase is incorrect : ", passPhrase)
 
 if __name__ == "__main__":
     main()
